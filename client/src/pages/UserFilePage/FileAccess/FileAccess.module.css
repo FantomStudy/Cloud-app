@@ -1,0 +1,66 @@
+.access_modal {
+  display: flex;
+  flex-direction: column;
+  grid-gap: 15px;
+}
+.access_modal button {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+.access_modal input {
+  width: 60%;
+  padding: 5px 10px;
+}
+.access_form {
+  display: flex;
+  grid-gap: 10px;
+}
+.access {
+  display: grid;
+  grid-gap: 10px;
+  align-items: center;
+  grid-template-columns: 30px 1fr 2fr 130px;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--black);
+  border-bottom: 1px solid #00000050;
+}
+.user {
+  width: 30px;
+}
+.owner {
+  text-align: center;
+  font-weight: 500;
+}
+@media (max-width: 768px) {
+  .access_modal {
+    font-size: 14px;
+  }
+  .access_modal input {
+    font-size: 14px;
+  }
+  .user {
+    display: none;
+  }
+  .access {
+    grid-template-columns: 1fr 1.8fr 130px;
+  }
+}
+@media (max-width: 450px) {
+  .access_modal input {
+    width: 100%;
+  }
+  .access_form {
+    flex-direction: column;
+  }
+  .access {
+    display: flex;
+    flex-direction: column;
+    grid-gap: 5px;
+  }
+  .full_name,
+  .email {
+    font-size: 16px;
+  }
+}
