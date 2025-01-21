@@ -74,7 +74,7 @@ class FileController extends Controller
                 "file_id" => $fileModel->file_id,
             ];
         }
-        return response()->json($data, 201);
+        return response()->json($data);
     }
 
     public function download(File $file){
@@ -107,7 +107,7 @@ class FileController extends Controller
                 "new_name" => $file->name,
                 "message" => "Renamed",
             ]
-        );
+        , 202);
     }
     public function delete(File $file){
         $filePath = $file->path;

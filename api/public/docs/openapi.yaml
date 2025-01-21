@@ -1,0 +1,711 @@
+openapi: 3.0.3
+info:
+  title: Laravel Cloud
+  version: 1.0.0
+  description: API for managing files in cloud storage
+servers:
+  - url: http://localhost:8000/api
+    description: Dev server
+paths:
+  /registration:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Creates a new user and returns a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+      responses:
+        '201':
+          description: "User registered successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          description: "Unprocessable Content"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationException'
+
+  /login:
+    post:
+      tags:
+        - Auth
+      summary: Login a user
+      description: Authenticates a user and returns a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '202':
+          description: "User logged in successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: "Unauthorized (login failed)"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+        '422':
+          description: "Unprocessable Content"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationException'
+
+  /logout:
+    get:
+      tags:
+        - Auth
+      summary: Logout a user
+      description: Deletes the current access token of the authenticated user
+      security:
+        - BearerAuth: []
+      responses:
+        '202':
+          description: User logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: "Unauthorized"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+
+  /files:
+    post:
+      tags:
+        - Files
+      summary: Upload files
+      description: Uploads one or more files to the server. Requires authentication.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadFileRequest'
+      responses:
+        '200':
+          description: Array of processed files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UploadFileResponse'
+
+  /files/{file_id}:
+    get:
+      tags:
+        - Files
+      summary: Download a file
+      description: Downloads a file by its ID. Requires authentication and permission to view the file.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          description: The ID of the file to download
+          schema:
+            type: string
+            example: "9007743631e"
+      responses:
+        '200':
+          description: File downloaded successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+        '403':
+          description: Forbidden (no permission to view the file)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessDeniedHttpException'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundHttpException'
+    patch:
+      tags:
+        - Files
+      summary: Edit a file
+      description: Edits a file's name by its ID. Requires authentication and permission to manage the file.
+      security:
+        - BearerAuth: [ ]  # Указываем, что эндпоинт требует аутентификации
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          description: The ID of the file to edit
+          schema:
+            type: string
+            example: "9007743631e"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditFileRequest'
+      responses:
+        '202':
+          description: File edited successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditFileResponse'
+        '401':
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+        '403':
+          description: Forbidden (no permission to manage the file)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessDeniedHttpException'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundHttpException'
+        '422':
+          description: Unprocessable Content (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationException'
+    delete:
+      tags:
+        - Files
+      summary: Delete a file
+      description: Deletes a file by its ID. Requires authentication and permission to manage the file.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          description: The ID of the file to delete
+          schema:
+            type: string
+            example: "9007743631e"
+      responses:
+        '200':
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteFileResponse'
+        '401':
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+        '403':
+          description: Forbidden (no permission to manage the file)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessDeniedHttpException'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundHttpException'
+
+  /files/disk:
+    get:
+      tags:
+        - Files
+      summary: Get user's files
+      description: Returns a list of files belonging to the authenticated user.
+      security:
+        - BearerAuth: [ ]
+      responses:
+        '200':
+          description: List of user's files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserFile'
+        '401':
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+
+  /shared:
+    get:
+      tags:
+        - Files
+      summary: Get files shared with the user
+      description: Returns a list of files shared with the authenticated user.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of files shared with the user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SharedFile'
+        '401':
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+
+  /files/{file_id}/accesses:
+    post:
+      tags:
+        - Access
+      summary: Add access to a file
+      description: Grants access to a file for a user by email. Requires authentication and permission to manage the file.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          description: The ID of the file to grant access to
+          schema:
+            type: string
+            example: "9010ad9f176"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditAccessRequest'
+      responses:
+        '201':
+          description: Access granted successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessArray'
+        '400':
+          description: Bad Request (user already has access or trying to grant access to self)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestException'
+        '401':
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+        '403':
+          description: Forbidden (no permission to manage the file)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessDeniedHttpException'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundHttpException'
+
+    delete:
+      tags:
+        - Access
+      summary: Remove access to a file
+      description: Revokes access to a file for a user by email. Requires authentication and permission to manage the file.
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          description: The ID of the file to revoke access from
+          schema:
+            type: string
+            example: "9010ad9f176"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditAccessRequest'
+      responses:
+        '200':
+          description: Access revoked successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessArray'
+        '401':
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationException'
+        '403':
+          description: Forbidden (no permission to manage the file)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessDeniedHttpException'
+        '404':
+          description: User not found or access does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundHttpException'
+
+components:
+  schemas:
+    RegistrationRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - email
+        - password
+      properties:
+        first_name:
+          type: string
+          example: John
+          description: User's first name
+        last_name:
+          type: string
+          example: Doe
+          description: User's last name
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+          description: User's email address
+        password:
+          type: string
+          format: password
+          example: pass123
+          description: User's password (min 3 characters)
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          required: true
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          required: true
+          type: string
+          example: pass123
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Welcome, John!"
+        token:
+          type: string
+          example: "1|Ee70tP3m480afg7o5QgJ5M0YqjIKR9UyHraw49nX8a0354f1"
+
+    LogoutResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Logged out successfully"
+
+
+
+    UploadFileRequest:
+      type: object
+      properties:
+        files[]:
+          type: array
+          items:
+            type: string
+            format: binary
+          description: List of files to upload
+
+    UploadFileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Success"
+        name:
+          type: string
+          example: "example.png"
+        author:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            first_name:
+              type: string
+              example: John
+            last_name:
+              type: string
+              example: Doe
+            email:
+              type: string
+              format: email
+              example: john.doe@example.com
+        size:
+          type: string
+          example: 64.990234375 Kb
+        file_id:
+          type: string
+          example: 90045ed8e45
+        url:
+          type: string
+          example: http://localhost:8000/api/files/90045ed8e45
+
+    EditFileRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "new_file_name.jpg"
+          description: New name for the file (must be unique for the user)
+
+    EditFileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        new_name:
+          type: string
+          example: "new_file_name.jpg"
+        message:
+          type: string
+          example: "Renamed"
+
+    DeleteFileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "File already deleted"
+
+    UserFile:
+      type: object
+      properties:
+        file_id:
+          type: string
+          example: "9007743631e"
+          description: Unique ID of the file
+        name:
+          type: string
+          example: "example.jpg"
+          description: Name of the file
+        size:
+          type: string
+          example: "1024 Kb"
+          description: Size of the file
+        path:
+          type: string
+          example: "uploads/example.pdf"
+          description: Path to the file on the server
+        author:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            first_name:
+              type: string
+              example: John
+            last_name:
+              type: string
+              example: Doe
+            email:
+              type: string
+              format: email
+              example: john.doe@example.com
+          description: Information about the file owner
+        url:
+          type: string
+          example: "http://localhost:8000/api/files/9007743631e"
+          description: URL to download the file
+        access:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessArray'
+          description: List of access permissions for the file
+
+    AccessArray:
+      type: object
+      properties:
+        full_name:
+          type: string
+          example: "John Doe"
+          description: Full name of the user with access
+        email:
+          type: string
+          example: "john.doe@example.com"
+          description: Email of the user with access
+        type:
+          type: string
+          example: "author"
+          description: Type of access (author or co-author)
+
+
+
+    SharedFile:
+      type: object
+      properties:
+        file_id:
+          type: string
+          example: "9010ad9f176"
+          description: Unique ID of the file
+        name:
+          type: string
+          example: "example.jpg"
+          description: Name of the file
+        size:
+          type: string
+          example: "1024 Kb"
+          description: Size of the file
+        author:
+          type: string
+          example: "john.doe@example.com"
+          description: Email of the file owner
+        url:
+          type: string
+          example: "http://localhost:8000/api/files/9010ad9f176"
+          description: URL to download the file
+
+    EditAccessRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "jane.smith@example.com"
+          description: Email of the user to grant/revoke access to/from
+
+
+
+    AccessRequestException:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "User already has access to this file"
+
+    NotFoundHttpException:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Resource not found
+
+    AuthenticationException:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Login failed
+
+    AccessDeniedHttpException:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Forbidden for you
+
+    ValidationException:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: {
+            "property": [
+              "Error description"
+            ]
+          }
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description:
+        "Use the token received after login. Example: `1|Ee70tP3m480afg7o5QgJ5M0YqjIKR9UyHraw49nX8a0354f1`"

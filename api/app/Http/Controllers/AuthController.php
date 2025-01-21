@@ -17,7 +17,7 @@ class AuthController extends Controller
             'success' => true,
             'message' => "Welcome, $user->first_name!",
             'token' => $token,
-        ]);
+        ], 201);
     }
     public function login(LoginUserRequest $request){
         $attempt = Auth::attempt($request->only('email', 'password'));
@@ -28,7 +28,7 @@ class AuthController extends Controller
                 'success' => true,
                 'message' => "Welcome, $user->first_name!",
                 'token' => $token,
-            ]);
+            ], 202);
         }
         return response()->json([
             'success' => false,
@@ -41,6 +41,6 @@ class AuthController extends Controller
         return response()->json([
             "success" => true,
             "message" => "Logged out successfully."
-        ], 201);
+        ], 202);
     }
 }
